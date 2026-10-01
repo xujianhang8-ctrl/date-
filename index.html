@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Thomson Reserve · 3D Explorer</title>
+  <meta name="description" content="Explore every unit at Thomson Reserve in 3D — unit mix, floor plans, sun and shadows, and the real view from each home.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/cesium@1.140.0/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+  <link href="styles.css" rel="stylesheet">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#explorer" id="brand">Thomson Reserve</a>
+    <nav class="nav">
+      <a href="#explorer">3D Explorer</a>
+      <a href="#overview">Overview</a>
+      <a href="#unit-mix">Unit Mix</a>
+      <a href="#facilities">Facilities</a>
+      <a href="#location">Location</a>
+      <a href="#floor-plans">Floor Plans</a>
+    </nav>
+    <a class="btn btn-gold" href="#register">Register Interest</a>
+  </header>
+
+  <section id="explorer" class="explorer">
+    <div id="viewer"></div>
+
+    <div class="toolbar">
+      <div class="pickers">
+        <select id="sel-block" aria-label="Block"></select>
+        <select id="sel-level" aria-label="Level"></select>
+        <select id="sel-unit" aria-label="Unit"></select>
+        <form id="search-form" class="search">
+          <input id="search" type="text" placeholder="Unit e.g. #12-25" aria-label="Find unit">
+        </form>
+      </div>
+      <div class="filters" id="filters"></div>
+      <label class="switch" title="Photorealistic surroundings from Google">
+        <input type="checkbox" id="real-city">
+        <span class="slider"></span>
+        <span>Real city view</span>
+        <span class="badge">Premium</span>
+      </label>
+    </div>
+
+    <button class="compass" id="compass" title="Rotate view">
+      <span class="needle" id="needle"></span>
+      <span class="compass-label" id="compass-label">View from N</span>
+    </button>
+
+    <details class="legend" id="legend-box" open>
+      <summary>Unit types</summary>
+      <div id="legend"></div>
+    </details>
+
+    <div class="sun-panel" id="sun-panel">
+      <div class="sun-head">
+        <strong>Sun &amp; shadows</strong>
+        <label class="check"><input type="checkbox" id="shadows" checked> Shadows</label>
+      </div>
+      <div class="sun-dates" id="sun-dates"></div>
+      <div class="sun-row">
+        <button class="icon-btn" id="sun-play" aria-label="Play sun animation">▶</button>
+        <input type="range" id="sun-time" min="390" max="1170" step="5" value="600" aria-label="Time of day">
+        <span id="sun-time-label" class="sun-time-label"></span>
+      </div>
+      <div class="sun-info" id="sun-info"></div>
+    </div>
+
+    <div class="tooltip" id="tooltip" hidden></div>
+    <div class="status" id="status" hidden></div>
+
+    <aside class="unit-card" id="unit-card" hidden>
+      <button class="close" id="card-close" aria-label="Close">×</button>
+      <div class="card-title" id="card-title"></div>
+      <div class="card-sub" id="card-sub"></div>
+      <div class="chips" id="card-chips"></div>
+      <ul class="card-notes" id="card-notes"></ul>
+      <a class="plan" id="card-plan" target="_blank" rel="noopener" title="Open full-size floor plan">
+        <img id="card-plan-img" alt="Floor plan">
+      </a>
+      <div class="card-actions">
+        <button class="btn btn-dark" id="btn-view-from">View from this unit</button>
+        <a class="btn btn-wa" id="btn-wa" target="_blank" rel="noopener">WhatsApp for price &amp; availability</a>
+        <a class="btn btn-ghost" id="btn-brochure" href="#register">Request e-brochure &amp; price list</a>
+      </div>
+    </aside>
+
+    <button class="btn btn-light overview-btn" id="btn-overview" hidden>← Back to overview</button>
+  </section>
+
+  <main class="content">
+    <section id="overview">
+      <h2>Overview</h2>
+      <p class="lead" id="tagline"></p>
+      <div class="stats" id="stats"></div>
+      <div class="collections">
+        <article>
+          <h3>Classic Collection</h3>
+          <p>Four 21-storey towers — Blk 1, 3, 9 and 11 — bringing together comfort, ease and enduring design.</p>
+        </article>
+        <article>
+          <h3>Luxury Collection</h3>
+          <p>Two taller 30-storey towers — Blk 5 and 7 — closest to the Singapore Island Country Club, with
+            elevated views across greenery and enhanced privacy. 4- and 5-bedroom homes come with a private lift.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="unit-mix">
+      <h2>Unit Mix</h2>
+      <div class="table-wrap">
+        <table class="mix">
+          <thead><tr><th>Bedroom type</th><th>Strata area</th><th>Units</th><th>%</th><th></th></tr></thead>
+          <tbody id="mix-body"></tbody>
+          <tfoot id="mix-foot"></tfoot>
+        </table>
+      </div>
+      <p class="fine">All areas are approximate and subject to final survey.</p>
+    </section>
+
+    <section id="facilities">
+      <h2>Facilities</h2>
+      <p class="lead">More than 80 curated lifestyle facilities across three distinctive clubs, set in a
+        nature-integrated 5-hectare landscape.</p>
+      <div class="clubs">
+        <article><h3>Wellness Club</h3><p>At the north-west end by Sin Ming Avenue, with tennis courts, a
+          wellness pool and garden spaces.</p></article>
+        <article><h3>Grand Clubhouse</h3><p>The heart of the development, wrapped around a winding lagoon pool
+          between the Luxury towers.</p></article>
+        <article><h3>Island Club</h3><p>Among the Classic towers by Bright Hill Drive, with its own pools,
+          pavilions and play areas.</p></article>
+      </div>
+    </section>
+
+    <section id="location">
+      <h2>Location</h2>
+      <p>Bounded by Upper Thomson Road, Bright Hill Drive and Sin Ming Avenue, with Upper Thomson MRT station
+        (Thomson–East Coast Line) beside the Bright Hill Drive entrance.</p>
+      <ul class="addresses" id="addresses"></ul>
+      <a class="btn btn-dark" id="maps-link" target="_blank" rel="noopener">Open in Google Maps</a>
+    </section>
+
+    <section id="floor-plans">
+      <h2>Floor Plans</h2>
+      <div class="plan-tabs" id="plan-tabs"></div>
+      <div class="plans" id="plans"></div>
+    </section>
+
+    <section id="register">
+      <h2>Register Interest</h2>
+      <form class="register" id="register-form">
+        <input name="name" placeholder="Name" required>
+        <input name="phone" placeholder="Mobile number" required>
+        <input name="email" type="email" placeholder="Email">
+        <input name="unit" id="reg-unit" placeholder="Unit or unit type of interest">
+        <textarea name="message" rows="3" placeholder="Message (optional)"></textarea>
+        <button class="btn btn-gold" type="submit">Send enquiry</button>
+      </form>
+    </section>
+
+    <footer class="footer">
+      Unit mix, areas and floor plans are taken from the developer's brochure and are subject to change.
+      The 3D building massing is indicative only; floor-to-floor heights are estimated.
+    </footer>
+  </main>
+
+  <a class="wa-float" id="wa-float" target="_blank" rel="noopener" aria-label="Chat on WhatsApp">
+    <svg viewBox="0 0 32 32" width="28" height="28" fill="#fff" aria-hidden="true"><path d="M16 3C9 3 3.3 8.6 3.3 15.6c0 2.4.7 4.7 1.9 6.7L3 29l6.9-2.2c1.9 1 4 1.6 6.1 1.6 7 0 12.7-5.7 12.7-12.7S23 3 16 3zm0 23.2c-1.9 0-3.8-.5-5.4-1.5l-.4-.2-4.1 1.3 1.3-4-.3-.4c-1.1-1.7-1.7-3.7-1.7-5.7C5.4 9.8 10.1 5.1 16 5.1s10.6 4.7 10.6 10.5S21.8 26.2 16 26.2zm5.8-7.9c-.3-.2-1.9-.9-2.2-1-.3-.1-.5-.2-.7.2-.2.3-.8 1-1 1.2-.2.2-.4.2-.7.1-.3-.2-1.3-.5-2.6-1.6-1-.9-1.6-1.9-1.8-2.2-.2-.3 0-.5.1-.7l.5-.6c.2-.2.2-.3.3-.5.1-.2 0-.4 0-.6l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.2 1.1-1.2 2.8s1.2 3.2 1.4 3.5c.2.2 2.4 3.6 5.7 5 .8.3 1.4.5 1.9.7.8.3 1.5.2 2.1.1.6-.1 1.9-.8 2.2-1.5.3-.7.3-1.4.2-1.5-.1-.2-.3-.3-.6-.4z"/></svg>
+  </a>
+
+  <script src="https://cdn.jsdelivr.net/npm/cesium@1.140.0/Build/Cesium/Cesium.js"></script>
+  <script src="config.js"></script>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
