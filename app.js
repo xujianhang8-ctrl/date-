@@ -262,12 +262,14 @@
 
     onReady(unitPrimitive, refreshColors);
     if (selected) showSelectionLabel(selected);
+    if (nearbyReady) updateNearbyHeights();
   }
 
   // ---------------------------------------------------------------- colours & filters
   const filter = { beds: null, collection: null, category: null, type: null };
   let selected = null;
   let selectionLabel = null;
+  let nearbyReady = false;
 
   function matches(u) {
     return (filter.beds === null || u.category.beds === filter.beds) &&
@@ -863,6 +865,162 @@
     };
   }
 
+  // ---------------------------------------------------------------- nearby amenities
+  const A = window.SITE_AMENITIES || { places: [], lines: [] };
+  const KINDS = {
+    school: { label: "Schools", color: "#e3a21a" },
+    mrt: { label: "MRT", color: "#9d5b25" },
+    mall: { label: "Malls", color: "#c2185b" },
+    expressway: { label: "Expressways", color: "#3f51b5" },
+  };
+  const nearbySource = new Cesium.CustomDataSource("nearby");
+  nearbySource.show = false;
+  viewer.dataSources.add(nearbySource);
+  const shownKinds = new Set(Object.keys(KINDS));
+  const placeEntities = [];
+  let ringLabel = null;
+
+  // Outline 1 km from the site: the buffer of the site's convex outline, traced direction by direction.
+  function ringAround(dist, steps = 180) {
+    const pts = [];
+    for (let i = 0; i < steps; i++) {
+      const a = (i / steps) * Math.PI * 2;
+      const ux = Math.cos(a);
+      const uy = Math.sin(a);
+      let best = D.site[0];
+      for (const p of D.site) if (p[0] * ux + p[1] * uy > best[0] * ux + best[1] * uy) best = p;
+      pts.push(toWorld(best[0] + ux * dist, best[1] + uy * dist));
+    }
+    pts.push(pts[0]);
+    return pts;
+  }
+
+  const fmtDist = (m) => (m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${m} m`);
+
+  function placeLabel(text, color, small) {
+    return {
+      text,
+      font: `${small ? 500 : 600} ${small ? 11 : 13}px Inter, sans-serif`,
+      fillColor: Cesium.Color.WHITE,
+      showBackground: true,
+      backgroundColor: Cesium.Color.fromCssColorString(color).withAlpha(0.9),
+      backgroundPadding: new Cesium.Cartesian2(7, 4),
+      pixelOffset: new Cesium.Cartesian2(0, small ? -12 : -16),
+      verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+      disableDepthTestDistance: Number.POSITIVE_INFINITY,
+    };
+  }
+  // Pins sit just above the site's ground level (which changes in the real-city view).
+  const pinAt = (lat, lng) => Cesium.Cartesian3.fromDegrees(lng, lat, baseHeight + 3);
+
+  function buildNearby() {
+    nearbySource.entities.add({
+      polyline: {
+        positions: ringAround(1000),
+        clampToGround: true,
+        width: 3,
+        material: new Cesium.PolylineDashMaterialProperty({ color: Cesium.Color.fromCssColorString("#b88a3e") }),
+      },
+    });
+    const ringTop = ringAround(1000, 4)[1]; // northernmost point of the ring
+    ringLabel = nearbySource.entities.add({
+      position: ringTop,
+      label: placeLabel("1 km from site", "#b88a3e", true),
+    });
+    A.lines.forEach((l) => nearbySource.entities.add({
+      polyline: {
+        positions: l.coords.map(([lat, lng]) => Cesium.Cartesian3.fromDegrees(lng, lat)),
+        clampToGround: true,
+        width: 5,
+        material: Cesium.Color.fromCssColorString(l.color).withAlpha(0.85),
+      },
+    }));
+    A.places.forEach((p) => {
+      const color = KINDS[p.kind].color;
+      const ents = [nearbySource.entities.add({
+        position: pinAt(p.lat, p.lng),
+        point: {
+          pixelSize: 12, color: Cesium.Color.fromCssColorString(color),
+          outlineColor: Cesium.Color.WHITE, outlineWidth: 2,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+        label: placeLabel(`${p.name} · ${fmtDist(p.dist)}`, color),
+      })];
+      if (p.exit) {
+        ents.push(nearbySource.entities.add({
+          position: pinAt(p.exit.lat, p.exit.lng),
+          point: {
+            pixelSize: 8, color: Cesium.Color.fromCssColorString(color),
+            outlineColor: Cesium.Color.WHITE, outlineWidth: 1.5,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+          label: placeLabel(`${p.exit.name} · ${fmtDist(p.exit.dist)}`, color, true),
+        }));
+      }
+      placeEntities.push({ place: p, ents });
+    });
+  }
+
+  function updateNearbyHeights() {
+    placeEntities.forEach(({ place, ents }) => {
+      ents[0].position = pinAt(place.lat, place.lng);
+      if (place.exit) ents[1].position = pinAt(place.exit.lat, place.exit.lng);
+    });
+    if (ringLabel) ringLabel.position = ringAround(1000, 4)[1];
+  }
+
+  function flyToPlace(p) {
+    camera.flyToBoundingSphere(new Cesium.BoundingSphere(Cesium.Cartesian3.fromDegrees(p.lng, p.lat), 120), {
+      offset: new Cesium.HeadingPitchRange(Cesium.Math.toRadians(viewHeading), Cesium.Math.toRadians(-40), 600),
+      duration: 1.4,
+    });
+    $("btn-overview").hidden = false;
+  }
+
+  function renderNearby() {
+    const kinds = Object.keys(KINDS).filter((k) => A.places.some((p) => p.kind === k));
+    $("nearby-kinds").replaceChildren(...kinds.map((k) => chip(KINDS[k].label, shownKinds.has(k), () => {
+      if (shownKinds.has(k)) shownKinds.delete(k); else shownKinds.add(k);
+      renderNearby();
+    }, KINDS[k].color)));
+    placeEntities.forEach(({ place, ents }) => ents.forEach((e) => { e.show = shownKinds.has(place.kind); }));
+    const rows = [];
+    kinds.filter((k) => shownKinds.has(k)).forEach((k) => {
+      const g = document.createElement("div");
+      g.className = "nearby-group";
+      g.textContent = KINDS[k].label;
+      rows.push(g);
+      A.places.filter((p) => p.kind === k).forEach((p) => {
+        const row = document.createElement("button");
+        row.className = "legend-row nearby-row";
+        row.innerHTML = `<span class="dot" style="background:${KINDS[k].color}"></span><span></span><b></b>`;
+        row.children[1].textContent = p.name;
+        if (p.note || p.exit) {
+          const small = document.createElement("small");
+          small.textContent = [p.note, p.exit && `${p.exit.name} ${fmtDist(p.exit.dist)}`].filter(Boolean).join(" · ");
+          row.children[1].appendChild(small);
+        }
+        row.children[2].textContent = fmtDist(p.dist);
+        row.onclick = () => flyToPlace(p);
+        rows.push(row);
+      });
+    });
+    $("nearby-list").replaceChildren(...rows);
+  }
+
+  $("nearby-box").addEventListener("toggle", () => {
+    const open = $("nearby-box").open;
+    nearbySource.show = open;
+    if (open) {
+      camera.flyToBoundingSphere(new Cesium.BoundingSphere(toWorld(0, 0, 0), 1150), {
+        offset: new Cesium.HeadingPitchRange(
+          Cesium.Math.toRadians(viewHeading), Cesium.Math.toRadians(-60), 0),
+        duration: 1.6,
+      });
+      $("btn-overview").hidden = false;
+    }
+  });
+
   // ---------------------------------------------------------------- start
   if (window.matchMedia("(max-width: 760px)").matches) $("legend-box").open = false;
   buildScene();
@@ -873,6 +1031,9 @@
   renderDates();
   updateSun();
   renderContent();
+  buildNearby();
+  nearbyReady = true;
+  renderNearby();
   flyOverview(viewHeading, 0);
 
   // Exposed for debugging in the browser console.

@@ -128,12 +128,22 @@ body {
   background: var(--panel); padding: 2px 6px; border-radius: 6px;
 }
 
-.legend {
+.side {
   position: absolute; right: 16px; top: 228px; z-index: 5;
-  width: 270px; max-height: calc(100% - 300px); overflow-y: auto;
+  width: 280px; max-height: calc(100% - 300px); overflow-y: auto;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.legend {
   padding: 8px 10px; border-radius: 12px;
   background: var(--panel); box-shadow: var(--shadow); font-size: 12px;
 }
+.nearby-kinds { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 6px; }
+.nearby-kinds .chip { height: 26px; padding: 0 8px; font-size: 12px; }
+.nearby-group { margin: 6px 0 2px; font-weight: 600; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+.nearby-row small { display: block; color: var(--muted); font-size: 11px; }
+.legend-row.active small { color: #dfe; }
+.nearby-note { margin: 6px 2px 2px; color: var(--muted); font-size: 11px; line-height: 1.4; }
+.nearby-note a { color: inherit; }
 .legend summary { font-weight: 600; font-size: 13px; cursor: pointer; padding: 2px 0 4px; }
 .legend-row {
   display: grid; grid-template-columns: 12px 1fr auto; align-items: center; gap: 8px;
@@ -258,7 +268,7 @@ body {
   .filters { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; }
   .compass { top: auto; bottom: 214px; right: 12px; width: 52px; height: 52px; }
   .compass-label { display: none; }
-  .legend { top: auto; bottom: 214px; left: 8px; right: auto; width: 230px; max-height: 40%; }
+  .side { top: auto; bottom: 214px; left: 8px; right: auto; width: 240px; max-height: 40%; }
   .sun-panel { left: 8px; right: 8px; bottom: 22px; width: auto; padding: 10px; }
   .unit-card {
     left: 0; right: 0; top: auto; bottom: 0; width: auto;

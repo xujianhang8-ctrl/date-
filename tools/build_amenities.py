@@ -1,0 +1,135 @@
+#!/usr/bin/env python3
+"""Build amenities.js: nearby MRT stations, entrances and rail lines (plus listed extras).
+
+Usage:
+    python3 tools/build_amenities.py
+
+Rail data comes from the open Singapore rail dataset at github.com/cheeaun/sgraildata
+(OpenStreetMap-derived). Other places (schools, malls, expressways) are read from
+tools/amenities_extra.json, a list of {"kind", "name", "lat", "lng", "note"} entries.
+Distances are measured from the nearest point of the site boundary in data.js.
+"""
+import json
+import math
+import os
+import urllib.request
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+RAIL_URL = "https://raw.githubusercontent.com/cheeaun/sgraildata/master/data/v1/sg-rail.geojson"
+STATION_RADIUS = 2000  # metres from the site
+LINE_RADIUS = 2600
+
+
+def load_site():
+    with open(os.path.join(ROOT, "data.js")) as f:
+        text = f.read()
+    data = json.loads(text[text.index("=") + 1:].strip().rstrip(";"))
+    return data["origin"], data["site"]
+
+
+def main():
+    origin, site = load_site()
+    lat0, lng0 = origin["lat"], origin["lng"]
+    kx, ky = 111320 * math.cos(math.radians(lat0)), 110574
+
+    def enu(lat, lng):
+        return ((lng - lng0) * kx, (lat - lat0) * ky)
+
+    def inside(p):
+        x, y = p
+        res = False
+        for (xi, yi), (xj, yj) in zip(site, site[-1:] + site[:-1]):
+            if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / (yj - yi) + xi:
+                res = not res
+        return res
+
+    def dist_to_site(lat, lng):
+        p = enu(lat, lng)
+        if inside(p):
+            return 0
+        best = float("inf")
+        for a, b in zip(site, site[1:] + site[:1]):
+            ax, ay = a
+            bx, by = b
+            dx, dy = bx - ax, by - ay
+            t = max(0, min(1, ((p[0] - ax) * dx + (p[1] - ay) * dy) / (dx * dx + dy * dy or 1)))
+            best = min(best, math.hypot(p[0] - ax - t * dx, p[1] - ay - t * dy))
+        return round(best)
+
+    with urllib.request.urlopen(RAIL_URL, timeout=60) as r:
+        rail = json.load(r)
+
+    places = []
+    stations = {}
+    for f in rail["features"]:
+        props, geom = f["properties"], f["geometry"]
+        if geom["type"] != "Point" or props.get("stop_type") != "station":
+            continue
+        if props.get("network") not in ("singapore-mrt",):
+            continue
+        lng, lat = geom["coordinates"]
+        d = dist_to_site(lat, lng)
+        if d <= STATION_RADIUS:
+            codes = props.get("station_codes", "")
+            stations[codes] = {"name": props["name"], "codes": codes}
+            places.append({"kind": "mrt", "name": f"{props['name']} MRT", "note": codes.replace("-", " / "),
+                           "lat": round(lat, 6), "lng": round(lng, 6), "dist": d})
+
+    # Nearest entrance of each nearby station: walking starts there.
+    for f in rail["features"]:
+        props, geom = f["properties"], f["geometry"]
+        if geom["type"] != "Point" or props.get("stop_type") != "entrance":
+            continue
+        code = props.get("station_codes", "")
+        match = next((s for c, s in stations.items() if code and code in c.split("-")), None)
+        if not match:
+            continue
+        lng, lat = geom["coordinates"]
+        d = dist_to_site(lat, lng)
+        station = next(p for p in places if p["kind"] == "mrt" and p["name"] == f"{match['name']} MRT")
+        if "exit" not in station or d < station["exit"]["dist"]:
+            station["exit"] = {"name": f"Exit {props.get('name', '')}".strip(), "lat": round(lat, 6),
+                               "lng": round(lng, 6), "dist": d}
+
+    lines = []
+    for f in rail["features"]:
+        props, geom = f["properties"], f["geometry"]
+        if props.get("network") != "singapore-mrt" or geom["type"] not in ("LineString", "MultiLineString"):
+            continue
+        parts = [geom["coordinates"]] if geom["type"] == "LineString" else geom["coordinates"]
+        for part in parts:
+            seg = []
+            for lng, lat in part:
+                x, y = enu(lat, lng)
+                if math.hypot(x, y) <= LINE_RADIUS:
+                    seg.append([round(lat, 6), round(lng, 6)])
+                elif len(seg) > 1:
+                    lines.append({"name": props["name"], "color": props.get("line_color", "grey"), "coords": seg})
+                    seg = []
+                else:
+                    seg = []
+            if len(seg) > 1:
+                lines.append({"name": props["name"], "color": props.get("line_color", "grey"), "coords": seg})
+
+    extra_path = os.path.join(ROOT, "tools", "amenities_extra.json")
+    if os.path.exists(extra_path):
+        with open(extra_path) as f:
+            for e in json.load(f):
+                places.append(dict(e, dist=dist_to_site(e["lat"], e["lng"])))
+
+    places.sort(key=lambda p: (p["kind"], p["dist"]))
+    out = {"places": places, "lines": lines}
+    with open(os.path.join(ROOT, "amenities.js"), "w") as f:
+        f.write("// Generated by tools/build_amenities.py. Do not edit by hand.\n")
+        f.write("// Rail data: github.com/cheeaun/sgraildata (OpenStreetMap contributors, ODbL).\n")
+        f.write("window.SITE_AMENITIES = ")
+        json.dump(out, f, separators=(",", ":"), ensure_ascii=False)
+        f.write(";\n")
+    for p in places:
+        exit_ = f" (nearest {p['exit']['name']}: {p['exit']['dist']} m)" if "exit" in p else ""
+        print(f"  {p['kind']:<10} {p['name']:<28} {p['dist']:>5} m{exit_}")
+    print(f"  {len(lines)} rail line segments")
+
+
+if __name__ == "__main__":
+    main()

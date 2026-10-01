@@ -41,6 +41,17 @@ traced from the vector drawing) and the illustrated site plan (pools). The key p
 the map using its north arrow, a scale checked against the floor-plan scale bar and the 5-hectare
 site area, and a position fitted to Upper Thomson Road and Bright Hill Drive on satellite imagery.
 
+## Nearby amenities
+
+```sh
+python3 tools/build_amenities.py
+```
+
+Writes `amenities.js`: MRT stations within 2 km, their nearest entrances and the rail lines (from the
+open [sgraildata](https://github.com/cheeaun/sgraildata) dataset, © OpenStreetMap contributors), plus
+any places listed in `tools/amenities_extra.json` (schools, malls, expressways). Distances are
+straight-line from the site boundary.
+
 ## Google Maps key
 
 The real-city view needs a Google Maps Platform key with the **Map Tiles API** enabled, set in
