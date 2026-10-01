@@ -50,6 +50,12 @@ The real-city view needs a Google Maps Platform key with the **Map Tiles API** e
   and `http://localhost:8000/*` for testing.
 - **API restrictions:** Map Tiles API only.
 
+## Publishing updates
+
+GitHub Pages lets browsers cache files for about 10 minutes. After changing `app.js`, `data.js`,
+`config.js` or `styles.css`, bump the `?v=` number on their tags in `index.html` so visitors get
+the new version straight away.
+
 ## Known limitations
 
 - Building massing is indicative: footprints come from the key plan, but floor-to-floor heights

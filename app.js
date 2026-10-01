@@ -657,8 +657,8 @@
     const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 10000));
     const h = await Promise.race([detailed, timeout]);
     if (h !== null) return h;
-    // Fall back to whatever tiles have loaded so far.
-    return pick(ring.map((c) => scene.sampleHeight(c, exclude))) ?? 0;
+    // Fall back to whatever tiles have loaded so far; null means "try again next time".
+    return pick(ring.map((c) => scene.sampleHeight(c, exclude)));
   }
 
   function clipSite() {
@@ -694,10 +694,23 @@
       googleTiles.show = true;
       scene.globe.show = false;
       scene.skyAtmosphere.show = true;
-      if (realGround === null || realGround === undefined) realGround = await sampleGround();
-      if (!googleTiles.clippingPolygons) clipSite();
+      // Ground height and site clipping only refine the view; a failure here shouldn't turn it off.
+      if (realGround === null || realGround === undefined) {
+        try {
+          realGround = await sampleGround();
+        } catch (e) {
+          console.warn("Could not sample the ground height", e);
+        }
+      }
+      if (!googleTiles.clippingPolygons) {
+        try {
+          clipSite();
+        } catch (e) {
+          console.warn("Could not cut the site out of the city tiles", e);
+        }
+      }
       if (!realCity) return; // toggled off while loading
-      baseHeight = realGround;
+      baseHeight = realGround ?? 0;
       buildScene();
       status(null);
     } catch (err) {
@@ -708,9 +721,24 @@
       scene.globe.show = true;
       scene.skyAtmosphere.show = false;
       status(null);
-      flash("Couldn't load the real city view. Check that the Map Tiles API is enabled for your key " +
-        "and that this website's address is allowed in the key's restrictions.");
+      flash(cityViewError(err), 12000);
     }
+  }
+
+  // Say why the city tiles failed, so the cause is visible without opening the browser console.
+  function cityViewError(err) {
+    const code = err && err.statusCode;
+    if (location.protocol === "file:") {
+      return "The real city view only works when the site is opened from its web address, not as a file.";
+    }
+    if (code === 403) {
+      return `Google refused the real city view for ${location.origin} (error 403). Check that the key's ` +
+        "website restrictions include this address and that the Map Tiles API is allowed.";
+    }
+    if (code === 400) return "Google didn't accept the API key (error 400). Check the key in config.js.";
+    if (code === 429) return "The real city view has hit Google's usage limit (error 429). Please try again later.";
+    return `Couldn't reach Google's 3D city tiles${code ? ` (error ${code})` : ""}. ` +
+      "Check your internet connection and try again.";
   }
   $("real-city").onchange = (e) => setRealCity(e.target.checked);
 
@@ -720,10 +748,10 @@
     $("status").textContent = text || "";
   }
   let flashTimer = null;
-  function flash(text) {
+  function flash(text, ms = 4500) {
     status(text);
     clearTimeout(flashTimer);
-    flashTimer = setTimeout(() => status(null), 4500);
+    flashTimer = setTimeout(() => status(null), ms);
   }
 
   function whatsappLink(text) {
