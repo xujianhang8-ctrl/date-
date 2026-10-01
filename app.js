@@ -1008,9 +1008,13 @@
     $("nearby-list").replaceChildren(...rows);
   }
 
+  $("nearby-toggle").onclick = () => { $("nearby-box").open = !$("nearby-box").open; };
   $("nearby-box").addEventListener("toggle", () => {
     const open = $("nearby-box").open;
     nearbySource.show = open;
+    $("nearby-toggle").setAttribute("aria-pressed", String(open));
+    // Make room for the list on small screens.
+    if (open && window.matchMedia("(max-width: 760px)").matches) $("legend-box").open = false;
     if (open) {
       camera.flyToBoundingSphere(new Cesium.BoundingSphere(toWorld(0, 0, 0), 1150), {
         offset: new Cesium.HeadingPitchRange(

@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/cesium@1.140.0/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
-  <link href="styles.css?v=4" rel="stylesheet">
+  <link href="styles.css?v=5" rel="stylesheet">
 </head>
 <body>
   <header class="topbar">
@@ -37,6 +37,9 @@
         </form>
       </div>
       <div class="filters" id="filters"></div>
+      <button class="switch nearby-toggle" id="nearby-toggle" type="button" aria-pressed="false">
+        <span class="dot" style="background:#e3a21a"></span> Schools &amp; MRT
+      </button>
       <label class="switch" title="Photorealistic surroundings from Google">
         <input type="checkbox" id="real-city">
         <span class="slider"></span>
@@ -181,9 +184,9 @@
   </a>
 
   <script src="https://cdn.jsdelivr.net/npm/cesium@1.140.0/Build/Cesium/Cesium.js"></script>
-  <script src="config.js?v=4"></script>
-  <script src="data.js?v=4"></script>
-  <script src="amenities.js?v=4"></script>
-  <script src="app.js?v=4"></script>
+  <script src="config.js?v=5"></script>
+  <script src="data.js?v=5"></script>
+  <script src="amenities.js?v=5"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>

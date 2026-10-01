@@ -97,6 +97,8 @@ body {
   font-size: 13px; font-weight: 600; cursor: pointer; user-select: none;
 }
 .switch input { display: none; }
+.nearby-toggle { border: 0; font-family: inherit; color: var(--ink); }
+.nearby-toggle[aria-pressed="true"] { background: var(--teal); color: #fff; }
 .switch .slider {
   width: 34px; height: 20px; border-radius: 999px; background: #c9ccc9;
   position: relative; transition: background .2s;
