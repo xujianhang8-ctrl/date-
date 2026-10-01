@@ -1,3 +1,6 @@
 [
-  {"kind": "mall", "name": "Thomson Plaza", "note": "301 Upper Thomson Road", "lat": 1.3548586, "lng": 103.8308906}
+  {"kind": "mall", "name": "Thomson Plaza", "note": "301 Upper Thomson Road", "lat": 1.3548586, "lng": 103.8308906},
+  {"kind": "school", "name": "Ai Tong School", "note": "Primary · 100 Bright Hill Drive", "lat": 1.3607363, "lng": 103.833075},
+  {"kind": "school", "name": "Peirce Secondary School", "note": "Secondary · 10 Sin Ming Walk", "lat": 1.3661316, "lng": 103.82991},
+  {"kind": "school", "name": "Catholic High School", "note": "Primary & Secondary · 9 Bishan Street 22", "lat": 1.3547888, "lng": 103.844934}
 ]
