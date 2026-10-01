@@ -10,10 +10,9 @@ window.SITE_CONFIG = {
   // Leave null to detect it automatically from the Google 3D tiles.
   groundHeight: null,
 
-  // Google Maps Platform key with the Map Tiles API enabled, for the real-city view.
-  // It is visible to anyone who opens the site, so restrict it to the site's address and the
-  // Map Tiles API in Google Cloud Console before pasting it here (see README).
-  googleMapsApiKey: "",
+  // Google Maps Platform key for the real-city view. It is visible in the page source, so it is
+  // restricted in Google Cloud Console to https://xujianhang8-ctrl.github.io/* and the Map Tiles API.
+  googleMapsApiKey: "AIzaSyBi8JHrOrRj-w99kKNcVQCTfNocVNJpyhc",
 
   // WhatsApp number in international format, digits only (e.g. "6591234567").
   whatsappNumber: "",
